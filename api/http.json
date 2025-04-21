@@ -1,0 +1,275 @@
+{
+  "api": {
+    "login": {
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/login",
+        "body": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "authToken": "string"
+        }
+      }
+    },
+    "dashboard": {
+      "request": {
+        "method": "GET",
+        "endpoint": "/api/dashboard",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "query": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "totalEmployees": "number",
+          "totalPayroll": "number",
+          "pendingPayments": "number",
+          "recentTransactions": "array",
+          "safeAccount": "string"
+        }
+      }
+    },
+    "payroll": {
+      "request": {
+        "method": "GET",
+        "endpoint": "/api/payroll",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "query": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "employees": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": "string",
+                "name": "string",
+                "address": "string",
+                "baseSalary": "number",
+                "bonus": "number",
+                "total": "number",
+                "paymentStatus": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "history": {
+      "request": {
+        "method": "GET",
+        "endpoint": "/api/history",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "query": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "transactions": "array"
+        }
+      }
+    },
+    "members": {
+      "request": {
+        "method": "GET",
+        "endpoint": "/api/members",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "query": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": "string",
+                "name": "string",
+                "role": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "saveEmployee": {
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/employee",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "body": {
+          "walletAddress": "string",
+          "employeeData": {
+            "type": "object",
+            "properties": {
+              "id": "string",
+              "name": "string",
+              "address": "string",
+              "baseSalary": "number",
+              "bonus": "number"
+            },
+            "required": ["name", "walletAddress", "baseSalary"]
+          }
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "id": "string",
+          "name": "string",
+          "walletAddress": "string",
+          "baseSalary": "number",
+          "bonus": "number"
+        }
+      }
+    },
+    "saveSafeAccount": {
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/safe-account",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "body": {
+          "walletAddress": "string",
+          "safeAddress": "string"
+        }
+      },
+      "response": {
+        "success": true
+      }
+    },
+    "deleteEmployee": {
+      "request": {
+        "method": "DELETE",
+        "endpoint": "/api/employee/{id}",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "body": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true
+      }
+    },
+    "getUserInfo": {
+      "request": {
+        "method": "GET",
+        "endpoint": "/api/user",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "query": {
+          "walletAddress": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "userName": "string",
+          "safeAccount": "string"
+        }
+      }
+    },
+    "updateUserInfo": {
+      "request": {
+        "method": "PUT",
+        "endpoint": "/api/user",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "body": {
+          "walletAddress": "string",
+          "userName": "string"
+        }
+      },
+      "response": {
+        "success": true
+      }
+    },
+    "getPendingTransactions": {
+      "request": {
+        "method": "GET",
+        "endpoint": "/api/pending-transactions",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "query": {
+          "walletAddress": "string",
+          "safeAccount": "string"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": "string",
+                "status": "string",
+                "total": "number",
+                "propose_address": "string",
+                "transactionDetails": "object",
+                "created_at": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "savePendingTransaction": {
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/pending-transaction",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "body": {
+          "walletAddress": "string",
+          "safeAccount": "string",
+          "transactionDetails": "object",
+          "propose_address": "string",
+          "total": "number"
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "id": "string",
+          "status": "string",
+          "propose_address": "string",
+          "total": "number"
+        }
+      }
+    }
+  }
+}
