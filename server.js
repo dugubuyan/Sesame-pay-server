@@ -1,3 +1,4 @@
+const { Sequelize } = require('sequelize');
 const express = require('express');
 const cors = require('cors');
 const { User, Payroll, PayrollHistory, PendingTransaction } = require('./app');
@@ -36,6 +37,7 @@ app.post('/api/login', async (req, res) => {
     const authToken = Buffer.from(walletAddress).toString('base64');
     res.json({ success: true, data: { authToken } });
   } catch (error) {
+    console.error('[/api/login] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -62,6 +64,7 @@ app.get('/api/dashboard', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('[/api/dashboard] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -84,6 +87,7 @@ app.get('/api/payroll', authMiddleware, async (req, res) => {
     });
     res.json({ success: true, data: { employees } });
   } catch (error) {
+    console.error('[/api/payroll] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -99,6 +103,7 @@ app.get('/api/history', authMiddleware, async (req, res) => {
     });
     res.json({ success: true, data: { transactions } });
   } catch (error) {
+    console.error('[/api/history] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -111,6 +116,7 @@ app.get('/api/members', authMiddleware, async (req, res) => {
     const members = await User.findAll({ where: { safe_account: user.safe_account } });
     res.json({ success: true, data: { members } });
   } catch (error) {
+    console.error('[/api/members] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -185,31 +191,6 @@ app.post('/api/safe-account', authMiddleware, async (req, res) => {
   }
 });
 
-// 获取待处理交易列表
-app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
-  try {
-    const { walletAddress, safeAccount } = req.query;
-    const transactions = await PendingTransaction.findAll({
-      where: {
-        safe_account: safeAccount,
-        address: walletAddress
-      }
-    });
-    res.json({
-      success: true,
-      data: {
-        transactions: transactions.map(t => ({
-          id: t.id,
-          status: t.status === 0 ? 'pending' : t.status === 1 ? 'completed' : 'failed',
-          details: t.transaction_details
-        }))
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
 // 创建待处理交易
 app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
   try {
@@ -250,11 +231,9 @@ app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
 });
 
 // 更新待处理交易状态
-app.put('/api/pending-transaction/:id', authMiddleware, async (req, res) => {
+app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress } = req.body;
-    const { id } = req.params;
-    const { status } = req.body;
+    const { walletAddress,id,status } = req.body;
 
     const transaction = await PendingTransaction.findOne({
       where: {
@@ -349,36 +328,6 @@ app.put('/api/user', authMiddleware, async (req, res) => {
   }
 });
 
-// 更新交易状态
-app.put('/api/pending-transaction/:id', authMiddleware, async (req, res) => {
-  try {
-    const { walletAddress } = req.body;
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    const user = await User.findOne({ where: { address: walletAddress } });
-    const transaction = await PendingTransaction.findOne({
-      where: { 
-        id: id,
-        safe_account: user.safe_account
-      }
-    });
-
-    if (!transaction) {
-      return res.status(404).json({ success: false, message: '未找到该交易或无权限更新' });
-    }
-
-    await PendingTransaction.update(
-      { status: status },
-      { where: { id: id, safe_account: user.safe_account } }
-    );
-
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
 // 获取待处理交易列表
 app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
   try {
@@ -388,9 +337,10 @@ app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
     const transactions = await PendingTransaction.findAll({
       where: { 
         safe_account: user.safe_account,
+        address: walletAddress,
         status: 0 // 只获取待处理状态的交易
       },
-      attributes: ['id', 'status', 'total', 'propose_address', 'transaction_details', 'created_at'],
+      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'created_at'],
       order: [['created_at', 'DESC']]
     });
 

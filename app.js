@@ -181,25 +181,53 @@ const PendingTransaction = sequelize.define('PendingTransaction', {
     type: DataTypes.STRING(128),
     allowNull: false,
     defaultValue: '',
-    comment: '员工钱包地址'
+    comment: '收款人钱包地址'
+  },
+  propose_address: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '交易发起人钱包地址'
   },
   transaction_details: {
     type: DataTypes.JSON,
     allowNull: false,
-    comment: '交易详细信息'
+    comment: '交易详细信息，包含每笔交易的金额和说明'
+  },
+  total: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+    comment: '交易总金额'
   },
   status: {
     type: DataTypes.TINYINT,
     allowNull: false,
     defaultValue: 0,
-    comment: '0-待处理,1-已完成,2-失败'
+    comment: '交易状态：0-待处理,1-已完成,2-失败'
   }
 }, {
   tableName: 'pending_transactions',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      unique: true,
+      fields: ['address', 'safe_account'],
+      name: 'uk_address_safe'
+    },
+    {
+      fields: ['safe_account'],
+      name: 'idx_safe_account'
+    },
+    {
+      fields: ['propose_address'],
+      name: 'idx_propose_address'
+    }
+  ]
 });
+
 
 // 同步模型到数据库
 sequelize.sync();

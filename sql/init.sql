@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS payroll;
-USE payroll;
+CREATE DATABASE IF NOT EXISTS sesame_pay;
+USE sesame_pay;
 
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
