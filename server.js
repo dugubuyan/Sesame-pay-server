@@ -194,7 +194,7 @@ app.post('/api/safe-account', authMiddleware, async (req, res) => {
 // 创建待处理交易
 app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, safeAccount,total, transactionDetails } = req.body;
+    const { walletAddress, safeAccount, total, transactionDetails, transaction_hash } = req.body;
     
     // 查找同一组织的其他用户
     const otherUsers = await User.findAll({
@@ -214,6 +214,7 @@ app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
         propose_address: walletAddress,
         total: total,
         transaction_details: transactionDetails,
+        transaction_hash: transaction_hash,
         status: 0 // 待处理状态
       })
     ));
@@ -222,7 +223,8 @@ app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
       success: true,
       data: {
         id: transactions[0]?.id,
-        status: 'pending'
+        status: 'pending',
+        transaction_hash: ''
       }
     });
   } catch (error) {
@@ -340,7 +342,7 @@ app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
         address: walletAddress,
         status: 0 // 只获取待处理状态的交易
       },
-      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'created_at'],
+      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'transaction_hash', 'created_at'],
       order: [['created_at', 'DESC']]
     });
 

@@ -39,6 +39,7 @@ CREATE TABLE `pending_transactions` (
   `transaction_details` JSON NOT NULL COMMENT '交易详细信息，包含每笔交易的金额和说明',
   `total` decimal(20,2) DEFAULT '0.00' NOT NULL COMMENT '交易总金额',
   `status` TINYINT DEFAULT '0' NOT NULL COMMENT '交易状态：0-待处理,1-已完成,2-失败',
+  `transaction_hash` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '交易哈希',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

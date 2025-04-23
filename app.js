@@ -205,6 +205,12 @@ const PendingTransaction = sequelize.define('PendingTransaction', {
     allowNull: false,
     defaultValue: 0,
     comment: '交易状态：0-待处理,1-已完成,2-失败'
+  },
+  transaction_hash: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '交易哈希'
   }
 }, {
   tableName: 'pending_transactions',

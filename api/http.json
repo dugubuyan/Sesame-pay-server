@@ -239,6 +239,7 @@
                 "total": "number",
                 "propose_address": "string",
                 "transactionDetails": "object",
+                "transaction_hash": "string",
                 "created_at": "string"
               }
             }
@@ -257,6 +258,7 @@
           "walletAddress": "string",
           "safeAccount": "string",
           "transactionDetails": "object",
+          "transaction_hash": "string",
           "propose_address": "string",
           "total": "number"
         }
@@ -267,7 +269,8 @@
           "id": "string",
           "status": "string",
           "propose_address": "string",
-          "total": "number"
+          "total": "number",
+          "transaction_hash": "string"
         }
       }
     }
