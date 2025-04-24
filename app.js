@@ -42,7 +42,18 @@ const User = sequelize.define('User', {
   tableName: 'user',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      unique: true,
+      fields: ['address'],
+      name: 'uk_address'
+    },
+    {
+      fields: ['safe_account'],
+      name: 'idx_safe_account'
+    }
+  ]
 });
 
 // 定义薪资模型
@@ -87,7 +98,18 @@ const Payroll = sequelize.define('Payroll', {
   tableName: 'payroll',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      unique: true,
+      fields: ['address', 'safe_account'],
+      name: 'uk_address_safe'
+    },
+    {
+      fields: ['safe_account'],
+      name: 'idx_safe_account'
+    }
+  ]
 });
 
 // 定义工资历史记录模型
@@ -98,11 +120,7 @@ const PayrollHistory = sequelize.define('PayrollHistory', {
     autoIncrement: true,
     comment: 'ID，主键，唯一，递增'
   },
-  employee_id: {
-    type: DataTypes.BIGINT,
-    allowNull: false,
-    comment: '员工ID'
-  },
+
   employee_name: {
     type: DataTypes.STRING(128),
     allowNull: false,
@@ -160,7 +178,13 @@ const PayrollHistory = sequelize.define('PayrollHistory', {
   tableName: 'payroll_history',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      fields: ['safe_account'],
+      name: 'idx_safe_account'
+    }
+  ]
 });
 
 // 定义待处理交易模型
@@ -220,8 +244,8 @@ const PendingTransaction = sequelize.define('PendingTransaction', {
   indexes: [
     {
       unique: true,
-      fields: ['address', 'safe_account'],
-      name: 'uk_address_safe'
+      fields: ['transaction_hash', 'address'],
+      name: 'uk_trans'
     },
     {
       fields: ['safe_account'],

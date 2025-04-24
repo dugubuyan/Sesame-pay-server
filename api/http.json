@@ -273,6 +273,39 @@
           "transaction_hash": "string"
         }
       }
+    },
+    "savePayrollHistory": {
+      "request": {
+        "method": "POST",
+        "endpoint": "/api/payroll/history",
+        "headers": {
+          "Auth-Token": "string"
+        },
+        "body": {
+          "walletAddress": "string",
+          "transactionData": {
+            "type": "object",
+            "properties": {
+              "safeAccount": "string",
+              "transactionDetails": "object",
+              "transaction_hash": "string",
+              "propose_address": "string",
+              "payment_time": "date-time"
+            }
+          }
+        }
+      },
+      "response": {
+        "success": true,
+        "data": {
+          "id": "string",
+          "status": "string",
+          "propose_address": "string",
+          "total": "number",
+          "transaction_hash": "string",
+          "created_at": "string"
+        }
+      }
     }
   }
 }

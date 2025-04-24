@@ -1,11 +1,13 @@
 const { Sequelize } = require('sequelize');
 const express = require('express');
 const cors = require('cors');
-const { User, Payroll, PayrollHistory, PendingTransaction } = require('./app');
+const { User, Payroll, PayrollHistory, PendingTransaction, sequelize } = require('./app');
+const { logger, requestLogger } = require('./logger');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(requestLogger); // 添加请求日志中间件
 
 // 认证中间件
 const authMiddleware = (req, res, next) => {
@@ -20,6 +22,7 @@ const authMiddleware = (req, res, next) => {
   const decodedWalletAddress = Buffer.from(authToken, 'base64').toString();
   
   if (decodedWalletAddress !== requestWalletAddress) {
+    logger.error('[/api/*] AuthToken不匹配: %s, %s', decodedWalletAddress, requestWalletAddress);
     return res.status(403).json({ success: false, message: '认证信息不匹配' });
   }
 
@@ -37,7 +40,7 @@ app.post('/api/login', async (req, res) => {
     const authToken = Buffer.from(walletAddress).toString('base64');
     res.json({ success: true, data: { authToken } });
   } catch (error) {
-    console.error('[/api/login] Error:', error);
+    logger.error('[/api/login] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -64,7 +67,7 @@ app.get('/api/dashboard', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[/api/dashboard] Error:', error);
+    logger.error('[/api/dashboard] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -87,7 +90,7 @@ app.get('/api/payroll', authMiddleware, async (req, res) => {
     });
     res.json({ success: true, data: { employees } });
   } catch (error) {
-    console.error('[/api/payroll] Error:', error);
+    logger.error('[/api/payroll] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -103,7 +106,7 @@ app.get('/api/history', authMiddleware, async (req, res) => {
     });
     res.json({ success: true, data: { transactions } });
   } catch (error) {
-    console.error('[/api/history] Error:', error);
+    logger.error('[/api/history] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -116,7 +119,7 @@ app.get('/api/members', authMiddleware, async (req, res) => {
     const members = await User.findAll({ where: { safe_account: user.safe_account } });
     res.json({ success: true, data: { members } });
   } catch (error) {
-    console.error('[/api/members] Error:', error);
+    logger.error('[/api/members] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -165,6 +168,7 @@ app.post('/api/employee', authMiddleware, async (req, res) => {
       res.json({ success: true, data: { id: employee.id } });
     }
   } catch (error) {
+    logger.error('[/api/employee] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -187,6 +191,7 @@ app.post('/api/safe-account', authMiddleware, async (req, res) => {
     }
     res.json({ success: true });
   } catch (error) {
+    logger.error('[/api/safe-account] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -228,6 +233,7 @@ app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
+    logger.error('[/api/pending-transaction] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -260,6 +266,7 @@ app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => 
       }
     });
   } catch (error) {
+    logger.error('[/api/pending-transaction/update] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -288,6 +295,7 @@ app.delete('/api/employee/:id', authMiddleware, async (req, res) => {
     await employee.destroy();
     res.json({ success: true });
   } catch (error) {
+    logger.error('[/api/employee] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -308,6 +316,7 @@ app.get('/api/user', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
+    logger.error('[/api/user] GET Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -326,6 +335,7 @@ app.put('/api/user', authMiddleware, async (req, res) => {
     );
     res.json({ success: true });
   } catch (error) {
+    logger.error('[/api/user] PUT Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -348,11 +358,67 @@ app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
 
     res.json({ success: true, data: { transactions } });
   } catch (error) {
+    logger.error('[/api/pending-transactions] Error: %s', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 保存工资发放历史记录
+app.post('/api/payroll/history', authMiddleware, async (req, res) => {
+  let t;
+  try {
+    const { walletAddress, transactionData } = req.body;
+    if (!transactionData || !transactionData.transactionDetails || !Array.isArray(transactionData.transactionDetails)) {
+      return res.status(400).json({ success: false, message: '无效的交易数据格式' });
+    }
+
+    const { safeAccount, transactionDetails, transaction_hash, payment_time } = transactionData;
+    if (!safeAccount || !transaction_hash || !payment_time) {
+      return res.status(400).json({ success: false, message: '缺少必要的交易信息' });
+    }
+
+    t = await sequelize.transaction();
+
+    // 批量创建工资发放历史记录
+    const historyRecords = transactionDetails.map(detail => ({
+      employee_name: detail.name || '',
+      address: detail.address || '',
+      safe_account: safeAccount,
+      base_salary: Number(detail.base) || 0,
+      bonus: Number(detail.bonus) || 0,
+      total: Number(detail.total) || 0,
+      payment_time: payment_time,
+      transaction_hash: transaction_hash,
+      status: 0 // 处理中状态
+    }));
+
+    const records = await PayrollHistory.bulkCreate(historyRecords, { 
+      transaction: t,
+      validate: true
+    });
+    
+    await t.commit();
+    logger.info('[/api/payroll/history] Successfully created %d records for safe account %s', records.length, safeAccount);
+
+    res.json({
+      success: true,
+      data: {
+        id: records[0]?.id,
+        status: 'processing',
+        propose_address: walletAddress,
+        total: historyRecords.reduce((sum, record) => sum + Number(record.total), 0),
+        transaction_hash: transaction_hash,
+        created_at: records[0]?.created_at
+      }
+    });
+  } catch (error) {
+    logger.error('[/api/payroll/history] Error: %s', error);
+    if (t) await t.rollback();
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 const PORT = 30001;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 });

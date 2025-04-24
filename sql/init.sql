@@ -43,7 +43,7 @@ CREATE TABLE `pending_transactions` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_address_safe` (`address`, `safe_account`),
+  UNIQUE KEY `uk_trans` (`transaction_hash`, `address`),
   KEY `idx_safe_account` (`safe_account`),
   KEY `idx_propose_address` (`propose_address`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -51,7 +51,6 @@ CREATE TABLE `pending_transactions` (
 DROP TABLE IF EXISTS `payroll_history`;
 CREATE TABLE `payroll_history` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'ID，主键，唯一，递增',
-  `employee_id` bigint NOT NULL COMMENT '员工ID',
   `employee_name` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '员工姓名',
   `address` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '员工钱包地址',
   `safe_account` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '组织安全账户地址',
