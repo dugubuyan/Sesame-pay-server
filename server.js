@@ -160,16 +160,24 @@ app.post('/api/employee', authMiddleware, async (req, res) => {
 // 保存安全账户
 app.post('/api/safe-account', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, safeAddress } = req.body;
-    // 更新特定用户的安全账户地址
+    const { walletAddress, safeAddress, signers } = req.body;
+    // 更新特定用户的安全账户地址和角色
     const user = await User.findOne({ where: { address: walletAddress } });
     if (!user) {
       return res.status(404).json({ success: false, message: '未找到该用户' });
     }
+    
+    // 如果用户在签名者列表中，设置为signer角色
+    const role = signers.includes(walletAddress) ? 'signer' : 'worker';
+    
     const result = await User.update(
-      { safe_account: safeAddress },
+      { 
+        safe_account: safeAddress,
+        role: role 
+      },
       { where: { address: walletAddress, safe_account: user.safe_account } }
     );
+    
     if (result[0] === 0) {
       return res.status(400).json({ success: false, message: '更新失败' });
     }
@@ -292,7 +300,8 @@ app.get('/api/user', authMiddleware, async (req, res) => {
       success: true,
       data: {
         userName: user.user_name || '',
-        safeAccount: user.safe_account || ''
+        safeAccount: user.safe_account || '',
+        role: user.role || 'worker'  // 添加role字段到返回数据中
       }
     });
   } catch (error) {

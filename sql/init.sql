@@ -7,6 +7,7 @@ CREATE TABLE `user` (
   `user_name` VARCHAR(128) DEFAULT '' NOT NULL,
   `address` VARCHAR(128) DEFAULT '' NOT NULL,
   `safe_account` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '组织安全账户地址',
+  `role` ENUM('signer', 'worker') DEFAULT 'worker' NOT NULL COMMENT '用户角色：signer-签名者,worker-普通成员',
   `user_status` TINYINT DEFAULT '0' NOT NULL COMMENT '0-正常,1-注销，2-暂停',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

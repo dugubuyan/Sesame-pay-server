@@ -32,6 +32,12 @@ const User = sequelize.define('User', {
     defaultValue: '',
     comment: '组织安全账户地址'
   },
+  role: {
+    type: DataTypes.ENUM('signer', 'worker'),
+    allowNull: false,
+    defaultValue: 'worker',
+    comment: '用户角色：signer-签名者,worker-普通成员'
+  },
   user_status: {
     type: DataTypes.TINYINT,
     allowNull: false,
