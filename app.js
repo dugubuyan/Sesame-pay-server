@@ -112,83 +112,8 @@ const Payroll = sequelize.define('Payroll', {
   ]
 });
 
-// 定义工资历史记录模型
-const PayrollHistory = sequelize.define('PayrollHistory', {
-  id: {
-    type: DataTypes.BIGINT,
-    primaryKey: true,
-    autoIncrement: true,
-    comment: 'ID，主键，唯一，递增'
-  },
-
-  employee_name: {
-    type: DataTypes.STRING(128),
-    allowNull: false,
-    defaultValue: '',
-    comment: '员工姓名'
-  },
-  address: {
-    type: DataTypes.STRING(128),
-    allowNull: false,
-    defaultValue: '',
-    comment: '员工钱包地址'
-  },
-  safe_account: {
-    type: DataTypes.STRING(128),
-    allowNull: false,
-    defaultValue: '',
-    comment: '组织安全账户地址'
-  },
-  base_salary: {
-    type: DataTypes.DECIMAL(20, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    comment: '基本工资'
-  },
-  bonus: {
-    type: DataTypes.DECIMAL(20, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    comment: '奖金'
-  },
-  total: {
-    type: DataTypes.DECIMAL(20, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    comment: '总工资'
-  },
-  payment_time: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    comment: '支付时间'
-  },
-  transaction_hash: {
-    type: DataTypes.STRING(128),
-    allowNull: false,
-    defaultValue: '',
-    comment: '交易哈希'
-  },
-  status: {
-    type: DataTypes.TINYINT,
-    allowNull: false,
-    defaultValue: 0,
-    comment: '0-处理中,1-成功,2-失败'
-  }
-}, {
-  tableName: 'payroll_history',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
-  indexes: [
-    {
-      fields: ['safe_account'],
-      name: 'idx_safe_account'
-    }
-  ]
-});
-
-// 定义待处理交易模型
-const PendingTransaction = sequelize.define('PendingTransaction', {
+// 定义交易模型（原 PendingTransaction）
+const Transaction = sequelize.define('Transaction', {
   id: {
     type: DataTypes.BIGINT,
     primaryKey: true,
@@ -200,12 +125,6 @@ const PendingTransaction = sequelize.define('PendingTransaction', {
     allowNull: false,
     defaultValue: '',
     comment: '组织安全账户地址'
-  },
-  address: {
-    type: DataTypes.STRING(128),
-    allowNull: false,
-    defaultValue: '',
-    comment: '收款人钱包地址'
   },
   propose_address: {
     type: DataTypes.STRING(128),
@@ -235,16 +154,22 @@ const PendingTransaction = sequelize.define('PendingTransaction', {
     allowNull: false,
     defaultValue: '',
     comment: '交易哈希'
+  },
+  chain_id: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+    comment: '链ID'
   }
 }, {
-  tableName: 'pending_transactions',
+  tableName: 'transactions',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   indexes: [
     {
       unique: true,
-      fields: ['transaction_hash', 'address'],
+      fields: ['transaction_hash', 'chain_id'],
       name: 'uk_trans'
     },
     {
@@ -258,14 +183,9 @@ const PendingTransaction = sequelize.define('PendingTransaction', {
   ]
 });
 
-
-// 同步模型到数据库
-sequelize.sync();
-
 module.exports = {
   sequelize,
   User,
   Payroll,
-  PayrollHistory,
-  PendingTransaction
+  Transaction
 };

@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 const express = require('express');
 const cors = require('cors');
-const { User, Payroll, PayrollHistory, PendingTransaction, sequelize } = require('./app');
+const { User, Payroll, Transaction, sequelize } = require('./app');
 const { logger, requestLogger } = require('./logger');
 
 const app = express();
@@ -95,22 +95,6 @@ app.get('/api/payroll', authMiddleware, async (req, res) => {
   }
 });
 
-// 获取历史记录
-app.get('/api/history', authMiddleware, async (req, res) => {
-  try {
-    const { walletAddress } = req.query;
-    const user = await User.findOne({ where: { address: walletAddress } });
-    const transactions = await PayrollHistory.findAll({
-      where: { safe_account: user.safe_account },
-      order: [['payment_time', 'DESC']]
-    });
-    res.json({ success: true, data: { transactions } });
-  } catch (error) {
-    logger.error('[/api/history] Error: %s', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
 // 获取成员列表
 app.get('/api/members', authMiddleware, async (req, res) => {
   try {
@@ -197,40 +181,37 @@ app.post('/api/safe-account', authMiddleware, async (req, res) => {
 });
 
 // 创建待处理交易
+
 app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, safeAccount, total, transactionDetails, transaction_hash } = req.body;
+    const { safeAccount, chainId, transactionDetails, transactionHash, proposeAddress, total } = req.body;
     
-    // 查找同一组织的其他用户
-    const otherUsers = await User.findAll({
-      where: {
-        safe_account: safeAccount,
-        address: {
-          [Sequelize.Op.ne]: walletAddress
-        }
-      }
+    // 打印所有接收到的参数
+    logger.info('[/api/pending-transaction] Parameters: safeAccount: %s, chainId: %s, transactionDetails: %s, transactionHash: %s, proposeAddress: %s, total: %s',
+      safeAccount,
+      chainId,
+      JSON.stringify(transactionDetails),
+      transactionHash,
+      proposeAddress,
+      total
+    );
+    const transaction = await Transaction.create({
+      safe_account: safeAccount,
+      chain_id: chainId,
+      propose_address: proposeAddress,
+      transaction_details: transactionDetails,
+      total: total,
+      transaction_hash: transactionHash
     });
-
-    // 为每个其他用户创建待处理交易记录
-    const transactions = await Promise.all(otherUsers.map(user =>
-      PendingTransaction.create({
-        safe_account: safeAccount,
-        address: user.address,
-        propose_address: walletAddress,
-        total: total,
-        transaction_details: transactionDetails,
-        transaction_hash: transaction_hash,
-        status: 0 // 待处理状态
-      })
-    ));
-
-    res.json({
-      success: true,
-      data: {
-        id: transactions[0]?.id,
-        status: 'pending',
-        transaction_hash: ''
-      }
+    res.json({ 
+      success: true, 
+      data: { 
+        id: transaction.id,
+        status: transaction.status,
+        propose_address: transaction.propose_address,
+        total: transaction.total,
+        transaction_hash: transaction.transaction_hash
+      } 
     });
   } catch (error) {
     logger.error('[/api/pending-transaction] Error: %s', error);
@@ -241,12 +222,11 @@ app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
 // 更新待处理交易状态
 app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress,id,status } = req.body;
+    const { walletAddress,transaction_hash,status } = req.body;
 
-    const transaction = await PendingTransaction.findOne({
+    const transaction = await Transaction.findOne({
       where: {
-        id,
-        address: walletAddress
+        transaction_hash
       }
     });
 
@@ -255,7 +235,7 @@ app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => 
     }
 
     await transaction.update({
-      status: status === 'completed' ? 1 : status === 'failed' ? 2 : 0
+      status: status
     });
 
     res.json({
@@ -340,80 +320,52 @@ app.put('/api/user', authMiddleware, async (req, res) => {
   }
 });
 
-// 获取待处理交易列表
+// 获取交易列表
 app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress } = req.query;
+    const { walletAddress, status } = req.query;
     const user = await User.findOne({ where: { address: walletAddress } });
     
-    const transactions = await PendingTransaction.findAll({
+    const transactions = await Transaction.findAll({
       where: { 
         safe_account: user.safe_account,
-        address: walletAddress,
-        status: 0 // 只获取待处理状态的交易
+        status: status 
       },
-      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'transaction_hash', 'created_at'],
-      order: [['created_at', 'DESC']]
+      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'transaction_hash', 'updated_at'],
+      order: [['updated_at', 'DESC']]
     });
 
-    res.json({ success: true, data: { transactions } });
-  } catch (error) {
-    logger.error('[/api/pending-transactions] Error: %s', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// 保存工资发放历史记录
-app.post('/api/payroll/history', authMiddleware, async (req, res) => {
-  let t;
-  try {
-    const { walletAddress, transactionData } = req.body;
-    if (!transactionData || !transactionData.transactionDetails || !Array.isArray(transactionData.transactionDetails)) {
-      return res.status(400).json({ success: false, message: '无效的交易数据格式' });
-    }
-
-    const { safeAccount, transactionDetails, transaction_hash, payment_time } = transactionData;
-    if (!safeAccount || !transaction_hash || !payment_time) {
-      return res.status(400).json({ success: false, message: '缺少必要的交易信息' });
-    }
-
-    t = await sequelize.transaction();
-
-    // 批量创建工资发放历史记录
-    const historyRecords = transactionDetails.map(detail => ({
-      employee_name: detail.name || '',
-      address: detail.address || '',
-      safe_account: safeAccount,
-      base_salary: Number(detail.base) || 0,
-      bonus: Number(detail.bonus) || 0,
-      total: Number(detail.total) || 0,
-      payment_time: payment_time,
-      transaction_hash: transaction_hash,
-      status: 0 // 处理中状态
-    }));
-
-    const records = await PayrollHistory.bulkCreate(historyRecords, { 
-      transaction: t,
-      validate: true
-    });
+    // 获取所有交易中涉及的propose_address
+    const proposeAddresses = transactions.map(t => t.propose_address);
     
-    await t.commit();
-    logger.info('[/api/payroll/history] Successfully created %d records for safe account %s', records.length, safeAccount);
+    // 批量查询这些地址对应的用户信息
+    const users = await User.findAll({
+      where: {
+        address: proposeAddresses
+      },
+      attributes: ['address', 'user_name']
+    });
 
-    res.json({
-      success: true,
-      data: {
-        id: records[0]?.id,
-        status: 'processing',
-        propose_address: walletAddress,
-        total: historyRecords.reduce((sum, record) => sum + Number(record.total), 0),
-        transaction_hash: transaction_hash,
-        created_at: records[0]?.created_at
+    // 创建地址到用户名的映射
+    const addressToUsername = {};
+    users.forEach(user => {
+      if (user.user_name) {
+        addressToUsername[user.address] = user.user_name;
       }
     });
+
+    // 处理交易列表，添加proposer字段（如果有对应的user_name）
+    const processedTransactions = transactions.map(transaction => {
+      const transactionData = transaction.toJSON();
+      if (addressToUsername[transactionData.propose_address]) {
+        transactionData.proposer = addressToUsername[transactionData.propose_address];
+      }
+      return transactionData;
+    });
+
+    res.json({ success: true, data: { transactions: processedTransactions } });
   } catch (error) {
-    logger.error('[/api/payroll/history] Error: %s', error);
-    if (t) await t.rollback();
+    logger.error('[/api/pending-transactions] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
