@@ -32,10 +32,12 @@ const authMiddleware = (req, res, next) => {
 // 登录接口
 app.post('/api/login', async (req, res) => {
   try {
-    const { walletAddress } = req.body;
-    let user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, chainId } = req.body;
+    let user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     if (!user) {
-      user = await User.create({ address: walletAddress });
+      const chain_id = chainId || 0; // 假设钱包地址就是安全账户地址
+      logger.info('[/api/login] User not found, creating new user: %s,%s', walletAddress, chain_id);
+      user = await User.create({ address: walletAddress, chain_id: chain_id  });
     }
     const authToken = Buffer.from(walletAddress).toString('base64');
     res.json({ success: true, data: { authToken } });
@@ -48,8 +50,8 @@ app.post('/api/login', async (req, res) => {
 // 仪表盘数据
 app.get('/api/dashboard', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress } = req.query;
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, chainId } = req.query;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     const totalEmployees = await Payroll.count({ where: { safe_account: user.safe_account } });
     const totalPayroll = await Payroll.sum(
       'base_salary',
@@ -75,20 +77,24 @@ app.get('/api/dashboard', authMiddleware, async (req, res) => {
 // 获取工资表
 app.get('/api/payroll', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress } = req.query;
-    const user = await User.findOne({ where: { address: walletAddress } });
-    const employees = await Payroll.findAll({ 
-      where: { safe_account: user.safe_account },
-      attributes: [
-        'id',
-        'name',
-        'address',
-        ['base_salary', 'baseSalary'],
-        'bonus',
-        [Payroll.sequelize.literal('base_salary + bonus'), 'total']
-      ]
-    });
-    res.json({ success: true, data: { employees } });
+    const { walletAddress, chainId } = req.query;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
+    if (!user) {
+      res.json({ success: true, data: [] });
+    }else{
+      const employees = await Payroll.findAll({ 
+        where: { safe_account: user.safe_account },
+        attributes: [
+          'id',
+          'name',
+          'address',
+          ['base_salary', 'baseSalary'],
+          'bonus',
+          [Payroll.sequelize.literal('base_salary + bonus'), 'total']
+        ]
+      });
+      res.json({ success: true, data: { employees } });
+    }
   } catch (error) {
     logger.error('[/api/payroll] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
@@ -98,8 +104,8 @@ app.get('/api/payroll', authMiddleware, async (req, res) => {
 // 获取成员列表
 app.get('/api/members', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress } = req.query;
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, chainId } = req.query;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     const members = await User.findAll({ where: { safe_account: user.safe_account } });
     res.json({ success: true, data: { members } });
   } catch (error) {
@@ -111,8 +117,8 @@ app.get('/api/members', authMiddleware, async (req, res) => {
 // 保存员工信息
 app.post('/api/employee', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, employeeData } = req.body;
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, employeeData, chainId } = req.body;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     
     if (employeeData.id) {
       // 更新操作
@@ -160,9 +166,9 @@ app.post('/api/employee', authMiddleware, async (req, res) => {
 // 保存安全账户
 app.post('/api/safe-account', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, safeAddress, signers } = req.body;
+    const { walletAddress, safeAddress, signers, chainId } = req.body;
     // 更新特定用户的安全账户地址和角色
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     if (!user) {
       return res.status(404).json({ success: false, message: '未找到该用户' });
     }
@@ -193,7 +199,6 @@ app.post('/api/safe-account', authMiddleware, async (req, res) => {
 app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
   try {
     const { safeAccount, chainId, transactionDetails, transactionHash, proposeAddress, total } = req.body;
-    
     // 打印所有接收到的参数
     logger.info('[/api/pending-transaction] Parameters: safeAccount: %s, chainId: %s, transactionDetails: %s, transactionHash: %s, proposeAddress: %s, total: %s',
       safeAccount,
@@ -230,11 +235,18 @@ app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
 // 更新待处理交易状态
 app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress,transaction_hash,status } = req.body;
-
+    const { walletAddress, transaction_hash, status, chainId, commit_hash } = req.body;
+    logger.info('[/api/pending-transaction/update] Parameters: walletAddress: %s, transaction_hash: %s, status: %s, chainId: %s, commit_hash: %s',
+      walletAddress,
+      transaction_hash,
+      status,
+      chainId,
+      commit_hash
+    );
     const transaction = await Transaction.findOne({
       where: {
-        transaction_hash
+        transaction_hash,
+        chain_id: chainId || 0
       }
     });
 
@@ -243,7 +255,8 @@ app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => 
     }
 
     await transaction.update({
-      status: status
+      status: status,
+      commit_hash: commit_hash || ''
     });
 
     res.json({
@@ -291,8 +304,8 @@ app.delete('/api/employee/:id', authMiddleware, async (req, res) => {
 // 获取用户信息
 app.get('/api/user', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress } = req.query;
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, chainId } = req.query;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     if (!user) {
       return res.status(404).json({ success: false, message: '未找到该用户' });
     }
@@ -313,8 +326,8 @@ app.get('/api/user', authMiddleware, async (req, res) => {
 // 更新用户信息
 app.put('/api/user', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, userName } = req.body;
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, userName, chainId } = req.body;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     if (!user) {
       return res.status(404).json({ success: false, message: '未找到该用户' });
     }
@@ -332,15 +345,15 @@ app.put('/api/user', authMiddleware, async (req, res) => {
 // 获取交易列表
 app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
   try {
-    const { walletAddress, status } = req.query;
-    const user = await User.findOne({ where: { address: walletAddress } });
+    const { walletAddress, status, chainId } = req.query;
+    const user = await User.findOne({ where: { address: walletAddress, chain_id: chainId || 0 } });
     
     const transactions = await Transaction.findAll({
       where: { 
         safe_account: user.safe_account,
         status: status 
       },
-      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'transaction_hash', 'updated_at'],
+      attributes: ['id', 'status', 'total', 'safe_account', 'propose_address', 'transaction_details', 'transaction_hash','commit_hash', 'updated_at'],
       order: [['updated_at', 'DESC']]
     });
 

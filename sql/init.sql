@@ -9,10 +9,11 @@ CREATE TABLE `user` (
   `safe_account` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '组织安全账户地址',
   `role` ENUM('signer', 'worker') DEFAULT 'worker' NOT NULL COMMENT '用户角色：signer-签名者,worker-普通成员',
   `user_status` TINYINT DEFAULT '0' NOT NULL COMMENT '0-正常,1-注销，2-暂停',
+  `chain_id` bigint DEFAULT 0 NOT NULL COMMENT '链ID',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_address` (`address`),
+  UNIQUE KEY `uk_address_chain` (`address`, `chain_id`),
   KEY `idx_safe_account` (`safe_account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -41,6 +42,7 @@ CREATE TABLE `transactions` (
   `status` TINYINT DEFAULT '0' NOT NULL COMMENT '交易状态：0-待处理,1-已完成,2-失败',
   `transaction_hash` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '交易哈希',
   `chain_id` bigint DEFAULT 0 NOT NULL COMMENT '链ID',
+  `commit_hash` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '提交哈希',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

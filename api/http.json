@@ -5,7 +5,8 @@
         "method": "POST",
         "endpoint": "/api/login",
         "body": {
-          "walletAddress": "string"
+          "walletAddress": "string",
+          "chainId": "number"
         }
       },
       "response": {
@@ -23,7 +24,8 @@
           "Auth-Token": "string"
         },
         "query": {
-          "walletAddress": "string"
+          "walletAddress": "string",
+          "chainId": "number"
         }
       },
       "response": {
@@ -124,6 +126,7 @@
         },
         "body": {
           "walletAddress": "string",
+          "chainId": "number",
           "employeeData": {
             "type": "object",
             "properties": {
@@ -157,7 +160,8 @@
         },
         "body": {
           "walletAddress": "string",
-          "safeAddress": "string"
+          "safeAddress": "string",
+          "chainId": "number"
         }
       },
       "response": {
@@ -187,7 +191,8 @@
           "Auth-Token": "string"
         },
         "query": {
-          "walletAddress": "string"
+          "walletAddress": "string",
+          "chainId": "number"
         }
       },
       "response": {
@@ -223,7 +228,8 @@
         },
         "query": {
           "walletAddress": "string",
-          "safeAccount": "string"
+          "safeAccount": "string",
+          "chainId": "number"
         }
       },
       "response": {
@@ -260,7 +266,9 @@
           "transactionDetails": "object",
           "transaction_hash": "string",
           "propose_address": "string",
-          "total": "number"
+          "total": "number",
+          "chainId": "number",
+          "commit_hash": "string"
         }
       },
       "response": {
@@ -290,7 +298,7 @@
               "transactionDetails": "object",
               "transaction_hash": "string",
               "propose_address": "string",
-              "payment_time": "date-time"
+              "payment_time": "string"
             }
           }
         }

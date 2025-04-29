@@ -43,6 +43,12 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 0,
     comment: '0-正常,1-注销，2-暂停'
+  },
+  chain_id: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+    comment: '链ID'
   }
 }, {
   tableName: 'user',
@@ -52,8 +58,8 @@ const User = sequelize.define('User', {
   indexes: [
     {
       unique: true,
-      fields: ['address'],
-      name: 'uk_address'
+      fields: ['address', 'chain_id'],
+      name: 'uk_address_chain'
     },
     {
       fields: ['safe_account'],
@@ -166,6 +172,12 @@ const Transaction = sequelize.define('Transaction', {
     allowNull: false,
     defaultValue: 0,
     comment: '链ID'
+  },
+  commit_hash: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '提交哈希'
   }
 }, {
   tableName: 'transactions',
