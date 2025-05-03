@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 const express = require('express');
 const cors = require('cors');
-const { User, Payroll, Transaction, sequelize } = require('./app');
+const { User, Payroll, Transaction, sequelize,TranHistory } = require('./app');
 const { logger, requestLogger } = require('./logger');
 
 const app = express();
@@ -249,16 +249,32 @@ app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => 
         chain_id: chainId || 0
       }
     });
-
+    
     if (!transaction) {
       return res.status(404).json({ success: false, message: '未找到该交易或无权限更新' });
     }
+    logger.info('[/api/pending-transaction/update] Transaction completed, adding records to history table:',transaction);
 
     await transaction.update({
       status: status,
       commit_hash: commit_hash || ''
     });
-
+    //如果交易完成，添加记录到历史表
+    if (status === 1) {
+      const transactionDetails = transaction.transaction_details;
+      for (const detail of transactionDetails) {
+        //添加到 tran_history 表
+        TranHistory.create({
+          safe_account: transaction.safe_account,
+          name: detail.name,
+          address: detail.address,
+          amount: detail.total,
+          commit_hash: transaction.commit_hash,
+          chain_id: transaction.chain_id,
+          pay_time: new Date(),
+        });
+      }
+    }
     res.json({
       success: true,
       data: {
@@ -388,6 +404,30 @@ app.get('/api/pending-transactions', authMiddleware, async (req, res) => {
     res.json({ success: true, data: { transactions: processedTransactions } });
   } catch (error) {
     logger.error('[/api/pending-transactions] Error: %s', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 获取交易历史记录
+app.get('/api/transaction-history', authMiddleware, async (req, res) => {
+  try {
+    const { address, chain_id, safe_account } = req.query;
+    
+    const transactions = await TranHistory.findAll({
+      where: {
+        address,
+        chain_id: chain_id || 0,
+        safe_account
+      },
+      order: [['pay_time', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: { transactions }
+    });
+  } catch (error) {
+    logger.error('[/api/transaction-history] Error: %s', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

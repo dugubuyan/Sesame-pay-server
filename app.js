@@ -124,6 +124,72 @@ const Payroll = sequelize.define('Payroll', {
   ]
 });
 
+// 定义交易历史模型
+const TranHistory = sequelize.define('TranHistory', {
+  id: {
+    type: DataTypes.BIGINT,
+    primaryKey: true,
+    autoIncrement: true,
+    comment: 'ID，主键，唯一，递增'
+  },
+  name: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '员工姓名'
+  },
+  address: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '员工钱包地址'
+  },
+  amount: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+    comment: '支付金额'
+  },
+  pay_time: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    comment: '支付时间'
+  },
+  commit_hash: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '提交哈希'
+  },
+  safe_account: {
+    type: DataTypes.STRING(128),
+    allowNull: false,
+    defaultValue: '',
+    comment: '组织安全账户地址'
+  },
+  chain_id: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+    comment: '链ID'
+  }
+}, {
+  tableName: 'tran_history',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      fields: ['address'],
+      name: 'idx_address'
+    },
+    {
+      fields: ['pay_time'],
+      name: 'idx_pay_time'
+    }
+  ]
+});
+
 // 定义交易模型（原 PendingTransaction）
 const Transaction = sequelize.define('Transaction', {
   id: {
@@ -201,9 +267,12 @@ const Transaction = sequelize.define('Transaction', {
   ]
 });
 
+
+
 module.exports = {
   sequelize,
   User,
   Payroll,
-  Transaction
+  Transaction,
+  TranHistory
 };
