@@ -433,6 +433,6 @@ app.get('/api/transaction-history', authMiddleware, async (req, res) => {
 });
 
 const PORT = 30001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0',() => {
   logger.info(`Server is running on port ${PORT}`);
 });
