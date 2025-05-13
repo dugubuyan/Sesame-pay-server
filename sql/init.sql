@@ -38,7 +38,7 @@ CREATE TABLE `transactions` (
   `safe_account` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '组织安全账户地址',
   `propose_address` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '交易发起人钱包地址',
   `transaction_details` JSON NOT NULL COMMENT '交易详细信息，包含每笔交易的金额和说明',
-  `total` decimal(20,2) DEFAULT '0.00' NOT NULL COMMENT '交易总金额',
+  `total` decimal(20,6) DEFAULT '0.000000' NOT NULL COMMENT '交易总金额',
   `status` TINYINT DEFAULT '0' NOT NULL COMMENT '交易状态：0-待处理,1-已完成,2-失败，3-未知',
   `transaction_hash` VARCHAR(128) DEFAULT '' NOT NULL COMMENT '交易哈希',
   `chain_id` bigint DEFAULT 0 NOT NULL COMMENT '链ID',

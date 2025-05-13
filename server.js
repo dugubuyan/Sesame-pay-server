@@ -195,7 +195,6 @@ app.post('/api/safe-account', authMiddleware, async (req, res) => {
 });
 
 // 创建待处理交易
-
 app.post('/api/pending-transaction', authMiddleware, async (req, res) => {
   try {
     const { safeAccount, chainId, transactionDetails, transactionHash, proposeAddress, total } = req.body;
@@ -260,7 +259,7 @@ app.post('/api/pending-transaction/update', authMiddleware, async (req, res) => 
       commit_hash: commit_hash || ''
     });
     //如果交易完成，添加记录到历史表
-    if (status === 1) {
+    if (status === 1 && Array.isArray(transaction.transaction_details) ){
       const transactionDetails = transaction.transaction_details;
       for (const detail of transactionDetails) {
         //添加到 tran_history 表

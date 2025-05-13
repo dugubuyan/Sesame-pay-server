@@ -95,13 +95,13 @@ const Payroll = sequelize.define('Payroll', {
     comment: '组织安全账户地址'
   },
   base_salary: {
-    type: DataTypes.DECIMAL(20, 2),
+    type: DataTypes.DECIMAL(20, 6),
     allowNull: false,
     defaultValue: 0.00,
     comment: '基本工资'
   },
   bonus: {
-    type: DataTypes.DECIMAL(20, 2),
+    type: DataTypes.DECIMAL(20, 6),
     allowNull: false,
     defaultValue: 0.00,
     comment: '奖金'
@@ -145,7 +145,7 @@ const TranHistory = sequelize.define('TranHistory', {
     comment: '员工钱包地址'
   },
   amount: {
-    type: DataTypes.DECIMAL(20, 2),
+    type: DataTypes.DECIMAL(20, 6),
     allowNull: false,
     defaultValue: 0.00,
     comment: '支付金额'
@@ -216,7 +216,7 @@ const Transaction = sequelize.define('Transaction', {
     comment: '交易详细信息，包含每笔交易的金额和说明'
   },
   total: {
-    type: DataTypes.DECIMAL(20, 2),
+    type: DataTypes.DECIMAL(20, 6),
     allowNull: false,
     defaultValue: 0.00,
     comment: '交易总金额'
