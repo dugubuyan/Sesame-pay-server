@@ -19,7 +19,7 @@ services:
         networks:
             - front-tier
         volumes:
-            - /home/pay-server/logs:/logs
+            - /home/pay-server/logs:/app/logs
     web:
         image: "registry.cn-shanghai.aliyuncs.com/bonjoy/nginx:v1"
         container_name: web
